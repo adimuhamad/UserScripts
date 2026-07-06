@@ -97,7 +97,7 @@
     // Compressed unified single-line DOM string implementation
     const overlay = document.createElement('div');
     overlay.className = 'gh-lb-overlay';
-    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev">' + icoAngleLeft + '</button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next">' + icoAngleRight + '</button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn">' + icoBullseye + ' Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn">' + icoEyeSlash + ' UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn">' + icoExpand + ' Fullscreen</button><button class="gh-lb-btn" id="gh-lb-help-btn">' + icoKeyboard + ' Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn">' + icoXmark + '</button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><button class="gh-lb-btn" id="gh-lb-unhide-btn">' + icoEye + ' Show UI</button><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
+    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev">' + icoAngleLeft + '</button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next">' + icoAngleRight + '</button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn">' + icoBullseye + ' Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn">' + icoEyeSlash + ' Hide UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn">' + icoExpand + ' Fullscreen</button><button class="gh-lb-btn" id="gh-lb-help-btn">' + icoKeyboard + ' Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn">' + icoXmark + '</button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><button class="gh-lb-btn" id="gh-lb-unhide-btn">' + icoEye + ' Show UI</button><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
     document.body.appendChild(overlay);
 
     const lbImg = document.getElementById('gh-lb-target-img');
@@ -364,7 +364,7 @@
 
     function toggleUIVisibility() {
         const isHidden = overlay.classList.toggle('ui-hidden');
-        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = isHidden ? icoEye + ' UI' : icoEyeSlash + ' UI';
+        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = isHidden ? icoEye + ' Show UI' : icoEyeSlash + ' Hide UI';
     }
 
     function goToImageLocation(e) {
@@ -382,10 +382,10 @@
         const fsBtn = document.getElementById('gh-lb-fs-btn');
         if (!document.fullscreenElement) {
             overlay.requestFullscreen();
-            fsBtn.innerHTML = icoCompress + ' Exit FS';
+            fsBtn.innerHTML = icoCompress + ' Collapse';
         } else {
             document.exitFullscreen();
-            fsBtn.innerHTML = icoExpand + ' Fullscreen';
+            fsBtn.innerHTML = icoExpand + ' Expand';
         }
     }
 
@@ -395,7 +395,7 @@
         if (helpModal.classList.contains('active')) { helpModal.classList.remove('active'); return; }
         if (overlay.classList.contains('ui-hidden')) { toggleUIVisibility(); return; }
         overlay.classList.remove('active'); overlay.classList.remove('ui-hidden');
-        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = icoEyeSlash + ' UI';
+        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = icoEyeSlash + ' Hide UI';
         document.body.style.overflow = ''; if (document.fullscreenElement) document.exitFullscreen();
         stopGifPlayer(); lbImg.src = '';
     }
