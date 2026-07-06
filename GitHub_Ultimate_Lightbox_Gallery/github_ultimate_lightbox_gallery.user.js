@@ -4,7 +4,7 @@
 // @version      6.8
 // @description  A minimalist lightbox gallery for GitHub repositories that allows full-screen viewing, zooming, and navigation of documentation images.
 // @author       MochAdiMR
-// @include      /^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?$/
+// @match        https://github.com/*
 // @icon         https://github.githubassets.com/pinned-octocat.svg
 // @grant        GM_xmlhttpRequest
 // @connect      *
@@ -354,7 +354,14 @@
         stopGifPlayer(); lbImg.src = '';
     }
 
+    // Capture click events inside markdown container anchors (with strict internal URL filtering)
     document.addEventListener('click', function(event) {
+        // Strict internal URL check: Only execute if exactly on the main repository page
+        const repoUrlRegex = /^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?(?:\?|#|$)/;
+        if (!repoUrlRegex.test(window.location.href)) {
+            return; // Silently exit if user is on sub-url A (profile) or deeper sub-urls (files/issues/etc)
+        }
+
         const targetImg = event.target.closest('.markdown-body img');
         if (targetImg && !shouldExclude(targetImg)) {
             event.preventDefault(); event.stopPropagation();
