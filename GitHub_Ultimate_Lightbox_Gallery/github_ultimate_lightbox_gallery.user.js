@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub Ultimate Lightbox Gallery
 // @namespace    Github Image Viewer Overlay
-// @version      6.8
+// @version      7.0
 // @description  A minimalist lightbox gallery for GitHub repositories that allows full-screen viewing, zooming, and navigation of documentation images.
 // @author       MochAdiMR
 // @match        https://github.com/*
@@ -28,11 +28,16 @@
     let startX = 0, startY = 0, downX = 0, downY = 0;
     let gifFrames = [], gifPlaying = false, currentGifFrame = 0, gifTimeout = null, gifDecoderId = 0;
 
-    // Inject FontAwesome 6.7.2 styles dynamically into document head
-    const faLink = document.createElement('link');
-    faLink.rel = 'stylesheet';
-    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css';
-    document.head.appendChild(faLink);
+    // FontAwesome 6.7.2 exact SVG path vector assets
+    const icoExpand = '<svg viewBox="0 0 448 512"><path d="M32 32C14.3 32 0 46.3 0 64v96c0 17.7 14.3 32 32 32s32-14.3 32-32V96h64c17.7 0 32-14.3 32-32s-14.3-32-32-32H32zM64 416v-64c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7 14.3 32 32 32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32H64zM416 64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32V64c0-17.7-14.3-32-32-32zM448 448v-96c0-17.7-14.3-32-32-32s-32 14.3-32 32v64h-64c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32z"/></svg>';
+    const icoCompress = '<svg viewBox="0 0 448 512"><path d="M160 64c0-17.7-14.3-32-32-32s-32 14.3-32 32v64H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h96c17.7 0 32-14.3 32-32V64zM32 320c-17.7 0-32 14.3-32 32s14.3 32 32 32h64v64c0 17.7 14.3 32 32 32s32-14.3 32-32v-96c0-17.7-14.3-32-32-32H32zM320 64v64h64c17.7 0 32 14.3 32 32s-14.3 32-32 32h-96c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32s32 14.3 32 32zM448 352c0-17.7-14.3-32-32-32h-96c-17.7 0-32 14.3-32 32v96c0 17.7 14.3 32 32 32s32-14.3 32-32v-64h64c17.7 0 32-14.3 32-32z"/></svg>';
+    const icoKeyboard = '<svg viewBox="0 0 576 512"><path d="M64 64C28.7 64 0 92.7 0 128v256c0 35.3 28.7 64 64 64h448c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64zm16 128c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H96c-8.8 0-16-7.2-16-16v-32zm96-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16zm80 16c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c8.8 0-16-7.2-16-16v-32zm96-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c8.8 0-16-7.2-16-16v-32zm80 16c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c8.8 0-16-7.2-16-16v-32zM96 288h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H96c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16zm80 16c0-8.8 7.2-16 16-16h224c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16H192c-8.8 0-16-7.2-16-16v-32zm272-16h32c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-32c8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16z"/></svg>';
+    const icoEye = '<svg viewBox="0 0 576 512"><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4 142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.4 78.1-95.4 93-131.1 3.3-7.9 3.3-16.7 0-24.6-14.8-35.7-46.1-87.7-93-131.1C433.5 68.8 368.8 32 288 32zm0 112c61.9 0 112 50.1 112 112s-50.1 112-112 112-112-50.1-112-112 50.1-112 112-112zm0 64c-26.5 0-48 21.5-48 48s21.5 48 48 48 48-21.5 48-48-21.5-48-48-48z"/></svg>';
+    const icoEyeSlash = '<svg viewBox="0 0 640 512"><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L472.1 344.7c15.2-19.6 27.9-41.4 37.8-63.5 14.8-35.7 46.1-87.7 93-131.1C555.7 106.3 491 70.2 410.2 70.2c-56.3 0-106.6 17.6-147.2 46L197.8 67.9C224.6 52.4 254.9 44 288 44c80.8 0 145.5 36.8 192.6 80.6 46.8 43.4 78.1 95.4 93 131.1 3.3 7.9 3.3 16.7 0 24.6-14.9 35.8-46.2 87.8-93 131.1-22 20.4-47 38.6-73.6 53.7l-47.5-37.2c35.4-23.7 62.5-59.5 76.5-94.2 3.3-7.9 3.3-16.7 0-24.6-14.9-35.7-46.2-87.7-93-131.1C395.5 112.8 344.8 82 288 82c-41.1 0-78.6 16.1-109.8 41L125 81.3C168.4 51.5 224.7 34 288 34c56.3 0 106.6 17.6 147.2 46L38.8 5.1zM288 336c-44.2 0-80-35.8-80-80 0-14.2 3.7-27.5 10.2-39L149 162.8C130.8 187.5 120 217.5 120 250c0 61.9 50.1 112 112 112 25.8 0 49.6-8.7 68.7-23.3l-42.5-33.3c-11.3 6.9-24.8 10.6-40.2 10.6z"/></svg>';
+    const icoBullseye = '<svg viewBox="0 0 512 512"><path d="M256 0c141.4 0 256 141.4 256 256S397.4 512 256 512 0 397.4 0 256 114.6 0 256 0zm0 96c-88.4 0-160 71.6-160 160s71.6 160 160 160 160-71.6 160-160-71.6-160-160-160zm0 64c53 0 96 43 96 96s-43 96-96 96-96-43-96-96 43-96 96-96zm0 64c-17.7 0-32 14.3-32 32s14.3 32 32 32 32-14.3 32-32-14.3-32-32-32z"/></svg>';
+    const icoXmark = '<svg viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>';
+    const icoAngleLeft = '<svg viewBox="0 0 320 512"><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>';
+    const icoAngleRight = '<svg viewBox="0 0 320 512"><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg>';
 
     // Inject core style sheets layout definitions
     const style = document.createElement('style');
@@ -55,9 +60,14 @@
         .gh-lb-overlay.zoomed-mode .gh-lb-main-view, .gh-lb-overlay.ui-hidden .gh-lb-main-view { padding: 0; }
         .gh-lb-img-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out; }
         .gh-lb-main-view img, .gh-lb-main-view canvas { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
+        
+        /* Standardized style for embedded inline SVG vectors */
+        .gh-lb-btn svg { width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: -12%; }
+        .gh-lb-nav svg { width: 15px; height: 15px; vertical-align: middle; }
+        
         .gh-lb-btn { background: rgba(33, 38, 45, 0.8); color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .gh-lb-btn:hover { background: #30363d; color: #58a6ff; border-color: #8b949e; }
-        .gh-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; font-size: 14px; z-index: 1000001; justify-content: center; padding: 0; }
+        .gh-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; z-index: 1000001; justify-content: center; padding: 0; }
         .gh-lb-prev { left: 14px; } .gh-lb-next { right: 14px; }
         .gh-lb-gif-bar { bottom: 60px; left: 50%; transform: translateX(-50%); background: rgba(22,27,34,0.92); border: 1px solid #30363d; padding: 5px 12px; border-radius: 30px; display: none; align-items: center; gap: 10px; width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .gh-lb-gif-bar input[type=range] { flex-grow: 1; accent-color: #58a6ff; cursor: pointer; height: 4px; }
@@ -73,10 +83,10 @@
     `;
     document.head.appendChild(style);
 
-    // Compressed unified single-line DOM string implementation with FontAwesome icons injected
+    // Completely compressed inline SVG single-line string DOM injection template
     const overlay = document.createElement('div');
     overlay.className = 'gh-lb-overlay';
-    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev"><i class="fa-solid fa-angle-left"></i></button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next"><i class="fa-solid fa-angle-right"></i></button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn"><i class="fa-solid fa-bullseye"></i> Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn"><i class="fa-solid fa-eye-slash"></i> UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn"><i class="fa-solid fa-expand"></i> Expand</button><button class="gh-lb-btn" id="gh-lb-help-btn"><i class="fa-solid fa-keyboard"></i> Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn"><i class="fa-solid fa-xmark"></i></button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
+    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev">' + icoAngleLeft + '</button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next">' + icoAngleRight + '</button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn">' + icoBullseye + ' Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn">' + icoEyeSlash + ' UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn">' + icoExpand + ' Expand</button><button class="gh-lb-btn" id="gh-lb-help-btn">' + icoKeyboard + ' Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn">' + icoXmark + '</button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
     document.body.appendChild(overlay);
 
     const lbImg = document.getElementById('gh-lb-target-img');
@@ -196,6 +206,7 @@
         preloadAdjacentImages();
     }
 
+    // Requests arraybuffer directly via userscript cross-origin mapping APIs
     function fetchGifViaGM(url) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -206,6 +217,7 @@
         });
     }
 
+    // Processes sequential custom loops for advanced GIF seekbars
     async function initGifPlayer(url) {
         const currentId = ++gifDecoderId;
         gifFrames = []; gifSeek.value = 0;
@@ -340,7 +352,7 @@
 
     function toggleUIVisibility() {
         const isHidden = overlay.classList.toggle('ui-hidden');
-        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = isHidden ? '<i class="fa-solid fa-eye"></i> UI' : '<i class="fa-solid fa-eye-slash"></i> UI';
+        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = isHidden ? icoEye + ' UI' : icoEyeSlash + ' UI';
     }
 
     function goToImageLocation(e) {
@@ -358,20 +370,21 @@
         const fsBtn = document.getElementById('gh-lb-fs-btn');
         if (!document.fullscreenElement) {
             overlay.requestFullscreen();
-            fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i> Collapse';
+            fsBtn.innerHTML = icoCompress + ' Collapse';
         } else {
             document.exitFullscreen();
-            fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i> Expand';
+            fsBtn.innerHTML = icoExpand + ' Expand';
         }
     }
 
     function openLightbox() { overlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
     
+    // Validates toggle states and visibility resets upon closure
     function closeLightbox() {
         if (helpModal.classList.contains('active')) { helpModal.classList.remove('active'); return; }
         if (overlay.classList.contains('ui-hidden')) { toggleUIVisibility(); return; }
         overlay.classList.remove('active'); overlay.classList.remove('ui-hidden');
-        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = '<i class="fa-solid fa-eye-slash"></i> UI';
+        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = icoEyeSlash + ' UI';
         document.body.style.overflow = ''; if (document.fullscreenElement) document.exitFullscreen();
         stopGifPlayer(); lbImg.src = '';
     }
