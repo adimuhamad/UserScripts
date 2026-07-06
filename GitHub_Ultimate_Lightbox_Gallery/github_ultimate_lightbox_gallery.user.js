@@ -17,16 +17,22 @@
 (function() {
     'use strict';
 
-    // Configuration rules for asset extraction
-    const enableFilter = true;
-    const excludeExtensions = ['SVG'];
-    const excludeDomains = ['avatars.githubusercontent.com'];
+    // Configuration parameters for filtering elements
+    const enableFilter = true; 
+    const excludeExtensions = ['SVG']; 
+    const excludeDomains = ['avatars.githubusercontent.com']; 
 
     let albumImages = [], currentIndex = 0;
     let scale = 1, translateX = 0, translateY = 0;
     let isDragging = false, wasDragged = false;
     let startX = 0, startY = 0, downX = 0, downY = 0;
     let gifFrames = [], gifPlaying = false, currentGifFrame = 0, gifTimeout = null, gifDecoderId = 0;
+
+    // Inject FontAwesome 6.7.2 styles dynamically into document head
+    const faLink = document.createElement('link');
+    faLink.rel = 'stylesheet';
+    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css';
+    document.head.appendChild(faLink);
 
     // Inject core style sheets layout definitions
     const style = document.createElement('style');
@@ -49,9 +55,9 @@
         .gh-lb-overlay.zoomed-mode .gh-lb-main-view, .gh-lb-overlay.ui-hidden .gh-lb-main-view { padding: 0; }
         .gh-lb-img-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out; }
         .gh-lb-main-view img, .gh-lb-main-view canvas { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
-        .gh-lb-btn { background: rgba(33, 38, 45, 0.8); color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .gh-lb-btn { background: rgba(33, 38, 45, 0.8); color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .gh-lb-btn:hover { background: #30363d; color: #58a6ff; border-color: #8b949e; }
-        .gh-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%; font-size: 15px; z-index: 1000001; justify-content: center; }
+        .gh-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; font-size: 14px; z-index: 1000001; justify-content: center; padding: 0; }
         .gh-lb-prev { left: 14px; } .gh-lb-next { right: 14px; }
         .gh-lb-gif-bar { bottom: 60px; left: 50%; transform: translateX(-50%); background: rgba(22,27,34,0.92); border: 1px solid #30363d; padding: 5px 12px; border-radius: 30px; display: none; align-items: center; gap: 10px; width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .gh-lb-gif-bar input[type=range] { flex-grow: 1; accent-color: #58a6ff; cursor: pointer; height: 4px; }
@@ -67,10 +73,10 @@
     `;
     document.head.appendChild(style);
 
-    // Optimized single-line template DOM initialization
+    // Compressed unified single-line DOM string implementation with FontAwesome icons injected
     const overlay = document.createElement('div');
     overlay.className = 'gh-lb-overlay';
-    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev">&#10094;</button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next">&#10095;</button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn">🎯 Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn">👁 UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn">⛶ Fullscreen</button><button class="gh-lb-btn" id="gh-lb-help-btn">⌨ Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn" style="font-size:14px;font-weight:bold;">&times;</button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
+    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev"><i class="fa-solid fa-angle-left"></i></button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next"><i class="fa-solid fa-angle-right"></i></button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn"><i class="fa-solid fa-bullseye"></i> Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn"><i class="fa-solid fa-eye-slash"></i> UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn"><i class="fa-solid fa-expand"></i> Expand</button><button class="gh-lb-btn" id="gh-lb-help-btn"><i class="fa-solid fa-keyboard"></i> Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn"><i class="fa-solid fa-xmark"></i></button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
     document.body.appendChild(overlay);
 
     const lbImg = document.getElementById('gh-lb-target-img');
@@ -82,7 +88,16 @@
     const gifPlayBtn = document.getElementById('gh-lb-gif-play');
     const gifSeek = document.getElementById('gh-lb-gif-seek');
 
-    // Sanitizes target path filtering rules
+    // Block cascading clicks from controls to background overlay
+    overlay.querySelector('.gh-lb-topbar').addEventListener('click', (e) => e.stopPropagation());
+    overlay.querySelector('.gh-lb-thumbs-window').addEventListener('click', (e) => e.stopPropagation());
+    helpModal.addEventListener('click', (e) => e.stopPropagation());
+    gifBar.addEventListener('click', (e) => e.stopPropagation());
+    gifSeek.addEventListener('click', (e) => e.stopPropagation());
+    gifSeek.addEventListener('pointerdown', (e) => e.stopPropagation());
+    gifSeek.addEventListener('pointerup', (e) => e.stopPropagation());
+
+    // Evaluates filter criteria based on rules setup
     function shouldExclude(img) {
         if (!enableFilter) return false;
         try {
@@ -92,6 +107,7 @@
         } catch(e) { return false; }
     }
 
+    // Normalizes file extension across different formats and camo urls
     function getCleanExtension(url) {
         let ext = 'IMG';
         try {
@@ -111,6 +127,7 @@
         return ext;
     }
 
+    // Resolves file name cleanly and filters out formatting formats
     function extractSmartTitle(img) {
         let title = img.alt || img.title || "";
         if (!title) {
@@ -174,7 +191,7 @@
 
         overlay.querySelector('.gh-lb-prev').style.display = albumImages.length <= 1 ? 'none' : 'flex';
         overlay.querySelector('.gh-lb-next').style.display = albumImages.length <= 1 ? 'none' : 'flex';
-
+        
         updateThumbnails();
         preloadAdjacentImages();
     }
@@ -200,10 +217,10 @@
             await decoder.tracks.ready;
             const frameCount = decoder.tracks.selectedTrack.frameCount;
             if (frameCount === 0) throw new Error();
-
+            
             const testResult = await decoder.decode({ frameIndex: 0 });
             const testCtx = lbCanvas.getContext('2d');
-            testCtx.drawImage(testResult.image, 0, 0);
+            testCtx.drawImage(testResult.image, 0, 0); 
             testCtx.clearRect(0, 0, lbCanvas.width, lbCanvas.height);
 
             if (currentId !== gifDecoderId) return;
@@ -220,7 +237,7 @@
             gifPlaying = true; gifPlayBtn.textContent = '⏸'; playGifLoop();
         } catch (e) {
             overlay.classList.remove('gif-active-mode');
-            lbImg.style.display = 'block'; lbCanvas.style.display = 'none'; gifBar.style.display = 'none';
+            lbImg.style.display = 'block'; lbCanvas.style.display = 'none'; gifBar.style.display = 'none'; 
             lbImg.src = url;
         }
     }
@@ -323,6 +340,7 @@
 
     function toggleUIVisibility() {
         const isHidden = overlay.classList.toggle('ui-hidden');
+        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = isHidden ? '<i class="fa-solid fa-eye"></i> UI' : '<i class="fa-solid fa-eye-slash"></i> UI';
     }
 
     function goToImageLocation(e) {
@@ -337,29 +355,32 @@
 
     function toggleFullscreen(e) {
         if(e) e.stopPropagation();
-        if (!document.fullscreenElement) { overlay.requestFullscreen(); document.getElementById('gh-lb-fs-btn').textContent = "Exit FS"; }
-        else { document.exitFullscreen(); document.getElementById('gh-lb-fs-btn').textContent = "⛶ Fullscreen"; }
+        const fsBtn = document.getElementById('gh-lb-fs-btn');
+        if (!document.fullscreenElement) {
+            overlay.requestFullscreen();
+            fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i> Collapse';
+        } else {
+            document.exitFullscreen();
+            fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i> Expand';
+        }
     }
 
-    function openLightbox() {
-		overlay.classList.add('active'); document.body.style.overflow = 'hidden';
-	}
-
+    function openLightbox() { overlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
+    
     function closeLightbox() {
         if (helpModal.classList.contains('active')) { helpModal.classList.remove('active'); return; }
         if (overlay.classList.contains('ui-hidden')) { toggleUIVisibility(); return; }
         overlay.classList.remove('active'); overlay.classList.remove('ui-hidden');
-        document.getElementById('gh-lb-toggle-ui-btn').textContent = "👁 UI";
+        document.getElementById('gh-lb-toggle-ui-btn').innerHTML = '<i class="fa-solid fa-eye-slash"></i> UI';
         document.body.style.overflow = ''; if (document.fullscreenElement) document.exitFullscreen();
         stopGifPlayer(); lbImg.src = '';
     }
 
-    // Capture click events inside markdown container anchors (with strict internal URL filtering)
+    // Capture click events inside markdown container anchors with internal URL regex filtering
     document.addEventListener('click', function(event) {
-        // Strict internal URL check: Only execute if exactly on the main repository page
         const repoUrlRegex = /^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?(?:\?|#|$)/;
         if (!repoUrlRegex.test(window.location.href)) {
-            return; // Silently exit if user is on sub-url A (profile) or deeper sub-urls (files/issues/etc)
+            return; 
         }
 
         const targetImg = event.target.closest('.markdown-body img');
@@ -378,8 +399,8 @@
     document.getElementById('gh-lb-toggle-ui-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleUIVisibility(); });
     document.getElementById('gh-lb-fs-btn').addEventListener('click', toggleFullscreen);
     document.getElementById('gh-lb-help-btn').addEventListener('click', (e) => { e.stopPropagation(); helpModal.classList.toggle('active'); });
-
-    // Strict strict boundary validation to prevent cross-bubbling overlay closure leaks
+    
+    // Strict boundary validation to prevent cross-bubbling overlay closure leaks
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay || e.target.classList.contains('gh-lb-main-view') || e.target.classList.contains('gh-lb-img-container')) {
             closeLightbox();
