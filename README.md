@@ -1,2 +1,1 @@
-# UserScripts
-UserScripts for Tampermonkey and or Violentmonkey extension and may be for other script extension with user.js support
+[UserScripts](https://www.userscript.zone/) for [Tampermonkey](https://github.com/Tampermonkey/tampermonkey) or [Violentmonkey](https://github.com/violentmonkey/violentmonkey) extension and may be for other script extension or Browser with native user.js support. This userscript also published at [Greasyfork](https://greasyfork.org/en/users/1326264-mochamad-adi).
