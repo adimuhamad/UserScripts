@@ -2,9 +2,9 @@
 // @name         GitHub Ultimate Lightbox Gallery
 // @namespace    Github Image Viewer Overlay
 // @version      6.8
-// @description  Premium minimalist lightbox engine featuring high-performance image spanning, advanced static thumbs, smart preloading, and custom hotkeys.
+// @description  A minimalist lightbox gallery for GitHub repositories that allows full-screen viewing, zooming, and navigation of documentation images.
 // @author       MochAdiMR
-// @match        https://github.com/*/*
+// @include      /^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?$/
 // @icon         https://github.githubassets.com/pinned-octocat.svg
 // @grant        GM_xmlhttpRequest
 // @connect      *
