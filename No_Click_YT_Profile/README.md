@@ -1,0 +1,1 @@
+No Click Profile & ClearURLs is a “2-in-1” Userscript designed to improve your focus and comfort while watching YouTube. This script addresses two major issues that users often encounter: accidentally clicking on profiles in the comments section and *video URLs that are “cluttered” with tracking/playlist parameters. *
