@@ -61,21 +61,32 @@
         .gh-lb-img-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out; }
         .gh-lb-main-view img, .gh-lb-main-view canvas { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
         
-        /* Standardized style for embedded inline SVG vectors */
-        .gh-lb-btn svg { width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: -12%; }
-        .gh-lb-nav svg { width: 15px; height: 15px; vertical-align: middle; }
+        /* Unified precise sizing boundaries for buttons and embedded SVGs */
+        .gh-lb-btn svg { width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle; }
+        .gh-lb-nav svg { width: 15px; height: 15px; }
+        .gh-lb-btn { background: rgba(33, 38, 45, 0.8); color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 0 10px; height: 26px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; }
+        .gh-lb-btn:hover, #gh-lb-unhide-btn:hover { background: #30363d; color: #58a6ff; border-color: #8b949e; }
         
-        .gh-lb-btn { background: rgba(33, 38, 45, 0.8); color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-        .gh-lb-btn:hover { background: #30363d; color: #58a6ff; border-color: #8b949e; }
-        .gh-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; z-index: 1000001; justify-content: center; padding: 0; }
+        /* Explicit sizing matching constraints for close square button */
+        #gh-lb-close-btn { width: 26px; padding: 0; }
+        #gh-lb-close-btn svg { width: 11px; height: 11px; }
+
+        .gh-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; z-index: 1000001; padding: 0; }
         .gh-lb-prev { left: 14px; } .gh-lb-next { right: 14px; }
         .gh-lb-gif-bar { bottom: 60px; left: 50%; transform: translateX(-50%); background: rgba(22,27,34,0.92); border: 1px solid #30363d; padding: 5px 12px; border-radius: 30px; display: none; align-items: center; gap: 10px; width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .gh-lb-gif-bar input[type=range] { flex-grow: 1; accent-color: #58a6ff; cursor: pointer; height: 4px; }
+        
+        /* Thumbnail Strip Configurations */
         .gh-lb-thumbs-container { display: flex; gap: 5px; overflow-x: auto; max-width: 95%; padding: 2px; scroll-behavior: smooth; }
         .gh-lb-thumbs-container::-webkit-scrollbar { height: 3px; }
         .gh-lb-thumbs-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
         .gh-lb-thumb { height: 34px; width: 50px; border-radius: 4px; border: 2px solid #30363d; cursor: pointer; opacity: 0.4; transition: 0.2s; flex-shrink: 0; box-sizing: border-box; }
         .gh-lb-thumb:hover, .gh-lb-thumb.active { opacity: 1; border-color: #58a6ff; }
+        
+        /* Floating Unhide trigger setup */
+        #gh-lb-unhide-btn { position: absolute; top: 6px; right: 14px; z-index: 1000007; display: none; }
+        .gh-lb-overlay.ui-hidden #gh-lb-unhide-btn { display: flex; }
+
         .gh-lb-help-modal { position: absolute; top: 50px; right: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; width: 220px; box-shadow: 0 6px 24px rgba(0,0,0,0.6); display: none; z-index: 1000006; font-size: 12px; }
         .gh-lb-help-modal.active { display: block; }
         .gh-lb-help-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dashed #21262d; padding-bottom: 4px; }
@@ -83,10 +94,10 @@
     `;
     document.head.appendChild(style);
 
-    // Completely compressed inline SVG single-line string DOM injection template
+    // Compressed unified single-line DOM string implementation
     const overlay = document.createElement('div');
     overlay.className = 'gh-lb-overlay';
-    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev">' + icoAngleLeft + '</button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next">' + icoAngleRight + '</button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn">' + icoBullseye + ' Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn">' + icoEyeSlash + ' UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn">' + icoExpand + ' Expand</button><button class="gh-lb-btn" id="gh-lb-help-btn">' + icoKeyboard + ' Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn">' + icoXmark + '</button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
+    overlay.innerHTML = '<div class="gh-lb-main-view"><button class="gh-lb-btn gh-lb-nav gh-lb-prev">' + icoAngleLeft + '</button><div class="gh-lb-img-container"><img id="gh-lb-target-img" src="" draggable="false"><canvas id="gh-lb-canvas" style="display:none;" draggable="false"></canvas></div><button class="gh-lb-btn gh-lb-nav gh-lb-next">' + icoAngleRight + '</button><div class="gh-lb-gif-bar"><button class="gh-lb-btn" id="gh-lb-gif-play" style="border-radius:50%;width:24px;height:24px;padding:0;justify-content:center;">▶</button><input type="range" id="gh-lb-gif-seek" min="0" value="0"></div></div><div class="gh-lb-topbar"><div class="gh-lb-meta"><div id="gh-lb-caption">Loading...</div><div class="gh-lb-tech-info"><span id="gh-lb-dims">-</span><span id="gh-lb-format">IMG</span><span id="gh-lb-size">-</span></div></div><div class="gh-lb-controls"><div class="gh-lb-counter">0 / 0</div><button class="gh-lb-btn" id="gh-lb-goto-btn">' + icoBullseye + ' Go to</button><button class="gh-lb-btn" id="gh-lb-toggle-ui-btn">' + icoEyeSlash + ' UI</button><button class="gh-lb-btn" id="gh-lb-fs-btn">' + icoExpand + ' Fullscreen</button><button class="gh-lb-btn" id="gh-lb-help-btn">' + icoKeyboard + ' Shortcuts</button><button class="gh-lb-btn" id="gh-lb-close-btn">' + icoXmark + '</button></div></div><div class="gh-lb-thumbs-window"><div class="gh-lb-thumbs-container"></div></div><button class="gh-lb-btn" id="gh-lb-unhide-btn">' + icoEye + ' Show UI</button><div class="gh-lb-help-modal" id="gh-lb-help-modal"><div style="font-weight:bold;margin-bottom:10px;color:#58a6ff;text-align:center;">Keyboard Shortcuts</div><div class="gh-lb-help-row"><span>Next Image</span><span class="gh-lb-key">→</span></div><div class="gh-lb-help-row"><span>Prev Image</span><span class="gh-lb-key">←</span></div><div class="gh-lb-help-row"><span>Fullscreen</span><span class="gh-lb-key">F</span></div><div class="gh-lb-help-row"><span>Go to Location</span><span class="gh-lb-key">G</span></div><div class="gh-lb-help-row"><span>Toggle Menu Bar</span><span class="gh-lb-key">H</span></div><div class="gh-lb-help-row"><span>Close Gallery</span><span class="gh-lb-key">ESC</span></div></div>';
     document.body.appendChild(overlay);
 
     const lbImg = document.getElementById('gh-lb-target-img');
@@ -97,6 +108,7 @@
     const gifBar = overlay.querySelector('.gh-lb-gif-bar');
     const gifPlayBtn = document.getElementById('gh-lb-gif-play');
     const gifSeek = document.getElementById('gh-lb-gif-seek');
+    const unhideBtn = document.getElementById('gh-lb-unhide-btn');
 
     // Block cascading clicks from controls to background overlay
     overlay.querySelector('.gh-lb-topbar').addEventListener('click', (e) => e.stopPropagation());
@@ -106,6 +118,7 @@
     gifSeek.addEventListener('click', (e) => e.stopPropagation());
     gifSeek.addEventListener('pointerdown', (e) => e.stopPropagation());
     gifSeek.addEventListener('pointerup', (e) => e.stopPropagation());
+    unhideBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleUIVisibility(); });
 
     // Evaluates filter criteria based on rules setup
     function shouldExclude(img) {
@@ -206,7 +219,6 @@
         preloadAdjacentImages();
     }
 
-    // Requests arraybuffer directly via userscript cross-origin mapping APIs
     function fetchGifViaGM(url) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -370,16 +382,15 @@
         const fsBtn = document.getElementById('gh-lb-fs-btn');
         if (!document.fullscreenElement) {
             overlay.requestFullscreen();
-            fsBtn.innerHTML = icoCompress + ' Collapse';
+            fsBtn.innerHTML = icoCompress + ' Exit FS';
         } else {
             document.exitFullscreen();
-            fsBtn.innerHTML = icoExpand + ' Expand';
+            fsBtn.innerHTML = icoExpand + ' Fullscreen';
         }
     }
 
     function openLightbox() { overlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
     
-    // Validates toggle states and visibility resets upon closure
     function closeLightbox() {
         if (helpModal.classList.contains('active')) { helpModal.classList.remove('active'); return; }
         if (overlay.classList.contains('ui-hidden')) { toggleUIVisibility(); return; }
