@@ -20,7 +20,7 @@
     // Configuration parameters for filtering elements (Whitelist Logic)
     const enableFilter = true;
     const includeExtensions = ['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'IMG'];
-    const includeDomains = ['githubusercontent.com', 'github.com'];
+    const includeDomains = ['gitlab.com', 'github.com'];
 
     let albumImages = [], currentIndex = 0;
     let scale = 1, translateX = 0, translateY = 0;
@@ -126,22 +126,26 @@
     gifSeek.addEventListener('pointerup', (e) => e.stopPropagation());
     unhideBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleUIVisibility(); });
 
-    // Evaluates filter criteria based on rules setup (Whitelist Logic)
+    // Evaluates filter criteria based on rules setup (Strict Whitelist Logic)
     function shouldExclude(img) {
         if (!enableFilter) return false;
         try {
             const url = img.src;
-
-            // Periksa daftar domain: jika tidak ada, kecualikan (return true)
-            const isDomainAllowed = includeDomains.some(domain => url.includes(domain));
+            
+            // Retrieve the original hostname, for example 'avatars.githubusercontent.com'
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname; 
+            
+            // Check the list of domains STRICTLY (must exactly match those in the array)
+            const isDomainAllowed = includeDomains.includes(hostname);
             if (!isDomainAllowed) return true;
 
-            // Periksa daftar ekstensi: jika tidak ada, kecualikan (return true)
+            // Check the extension list
             const ext = getCleanExtension(url);
             const isExtAllowed = includeExtensions.includes(ext);
             if (!isExtAllowed) return true;
 
-            // Jika lulus semua kriteria whitelist, jangan kecualikan (return false)
+            // If it passes all whitelist criteria, do not exclude
             return false;
         } catch(e) { return false; }
     }
