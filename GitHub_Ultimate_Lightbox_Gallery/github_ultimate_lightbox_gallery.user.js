@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub Ultimate Lightbox Gallery
 // @namespace    Github Image Viewer Overlay
-// @version      7.1
+// @version      7.3
 // @description  A minimalist lightbox gallery for GitHub repositories that allows full-screen viewing, zooming, and navigation of documentation images.
 // @author       MochAdiMR
 // @match        https://github.com/*
@@ -17,10 +17,10 @@
 (function() {
     'use strict';
 
-    // Configuration parameters for filtering elements
-    const enableFilter = true; 
-    const excludeExtensions = ['SVG']; 
-    const excludeDomains = ['avatars.githubusercontent.com']; 
+    // Configuration parameters for filtering elements (Whitelist Logic)
+    const enableFilter = true;
+    const includeExtensions = ['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'IMG'];
+    const includeDomains = ['githubusercontent.com', 'github.com'];
 
     let albumImages = [], currentIndex = 0;
     let scale = 1, translateX = 0, translateY = 0;
@@ -44,7 +44,7 @@
     // Inject core style sheets layout definitions
     const style = document.createElement('style');
     style.innerHTML = `
-        .gh-lb-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10,12,16,0.97); z-index: 999999; opacity: 0; pointer-events: none; transition: opacity 0.3s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #c9d1d9; user-select: none; }
+        .gh-lb-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background: rgba(10,12,16,0.97); z-index: 999999; opacity: 0; pointer-events: none; transition: opacity 0.3s; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #c9d1d9; user-select: none; }
         .gh-lb-overlay.active { pointer-events: auto; opacity: 1; }
         .gh-lb-topbar, .gh-lb-thumbs-window, .gh-lb-gif-bar { transition: opacity 0.25s, visibility 0.25s; opacity: 1; visibility: visible; position: absolute; left: 0; width: 100%; z-index: 1000002; }
         .gh-lb-topbar { top: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: rgba(0,0,0,0.85); box-sizing: border-box; }
@@ -57,18 +57,19 @@
         .gh-lb-tech-info span { background: #21262d; padding: 0px 4px; border-radius: 4px; border: 1px solid #30363d; }
         .gh-lb-controls { display: flex; align-items: center; gap: 8px; }
         .gh-lb-counter { font-size: 12px; color: #8b949e; margin-right: 4px; }
-        .gh-lb-main-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 1000000; display: flex; justify-content: center; align-items: center; box-sizing: border-box; padding-top: 38px; padding-bottom: 50px; transition: padding 0.2s ease; }
+        /* Ditambahkan touch-action: none untuk mencegah pull-to-refresh di seluler */
+        .gh-lb-main-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 1000000; display: flex; justify-content: center; align-items: center; box-sizing: border-box; padding-top: 38px; padding-bottom: 50px; transition: padding 0.2s ease; touch-action: none; }
         .gh-lb-overlay.gif-active-mode:not(.zoomed-mode):not(.ui-hidden) .gh-lb-main-view { padding-bottom: 95px; }
         .gh-lb-overlay.zoomed-mode .gh-lb-main-view, .gh-lb-overlay.ui-hidden .gh-lb-main-view { padding: 0; }
         .gh-lb-img-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out; }
         .gh-lb-main-view img, .gh-lb-main-view canvas { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
-        
+
         /* Unified precise sizing boundaries for buttons and embedded SVGs */
         .gh-lb-btn svg { width: 12px; height: 12px; fill: currentColor; display: inline-block; vertical-align: middle; }
         .gh-lb-nav svg { width: 15px; height: 15px; }
         .gh-lb-btn { background: rgba(33, 38, 45, 0.8); color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 0 10px; height: 26px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; }
         .gh-lb-btn:hover, #gh-lb-unhide-btn:hover { background: #30363d; color: #58a6ff; border-color: #8b949e; }
-        
+
         /* Explicit sizing matching constraints for close square button */
         #gh-lb-close-btn { width: 26px; padding: 0; }
         #gh-lb-close-btn svg { width: 11px; height: 11px; }
@@ -77,14 +78,14 @@
         .gh-lb-prev { left: 14px; } .gh-lb-next { right: 14px; }
         .gh-lb-gif-bar { bottom: 60px; left: 50%; transform: translateX(-50%); background: rgba(22,27,34,0.92); border: 1px solid #30363d; padding: 5px 12px; border-radius: 30px; display: none; align-items: center; gap: 10px; width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .gh-lb-gif-bar input[type=range] { flex-grow: 1; accent-color: #58a6ff; cursor: pointer; height: 4px; }
-        
+
         /* Thumbnail Strip Configurations */
-        .gh-lb-thumbs-container { display: flex; gap: 5px; overflow-x: auto; max-width: 95%; padding: 2px; scroll-behavior: smooth; }
+        .gh-lb-thumbs-container { display: flex; gap: 5px; overflow-x: auto; max-width: 95%; padding: 2px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .gh-lb-thumbs-container::-webkit-scrollbar { height: 3px; }
         .gh-lb-thumbs-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
         .gh-lb-thumb { height: 34px; width: 50px; border-radius: 4px; border: 2px solid #30363d; cursor: pointer; opacity: 0.4; transition: 0.2s; flex-shrink: 0; box-sizing: border-box; }
         .gh-lb-thumb:hover, .gh-lb-thumb.active { opacity: 1; border-color: #58a6ff; }
-        
+
         /* Floating Unhide trigger setup */
         #gh-lb-unhide-btn { position: absolute; top: 6px; right: 14px; z-index: 1000007; display: none; }
         .gh-lb-overlay.ui-hidden #gh-lb-unhide-btn { display: flex; }
@@ -93,6 +94,9 @@
         .gh-lb-help-modal.active { display: block; }
         .gh-lb-help-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dashed #21262d; padding-bottom: 4px; }
         .gh-lb-key { background: #30363d; border: 1px solid #8b949e; border-radius: 3px; padding: 1px 5px; font-weight: bold; font-family: monospace; color: #f0f6fc; }
+
+        /* --- PENYESUAIAN KHUSUS UNTUK TAMPILAN MOBILE --- */
+        @media (max-width: 768px){.gh-lb-topbar{flex-wrap:wrap;padding:10px;gap:8px}.gh-lb-meta{max-width:85%}.gh-lb-controls{width:100%;flex-wrap:wrap;justify-content:flex-start;gap:6px;margin-top:4px}#gh-lb-close-btn{position:absolute;top:10px;right:10px;width:32px;height:32px}#gh-lb-help-btn{display:none!important}.gh-lb-nav{width:44px;height:44px}}
     `;
     document.head.appendChild(style);
 
@@ -122,13 +126,23 @@
     gifSeek.addEventListener('pointerup', (e) => e.stopPropagation());
     unhideBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleUIVisibility(); });
 
-    // Evaluates filter criteria based on rules setup
+    // Evaluates filter criteria based on rules setup (Whitelist Logic)
     function shouldExclude(img) {
         if (!enableFilter) return false;
         try {
             const url = img.src;
-            if (excludeDomains.some(domain => url.includes(domain))) return true;
-            return excludeExtensions.includes(getCleanExtension(url));
+
+            // Periksa daftar domain: jika tidak ada, kecualikan (return true)
+            const isDomainAllowed = includeDomains.some(domain => url.includes(domain));
+            if (!isDomainAllowed) return true;
+
+            // Periksa daftar ekstensi: jika tidak ada, kecualikan (return true)
+            const ext = getCleanExtension(url);
+            const isExtAllowed = includeExtensions.includes(ext);
+            if (!isExtAllowed) return true;
+
+            // Jika lulus semua kriteria whitelist, jangan kecualikan (return false)
+            return false;
         } catch(e) { return false; }
     }
 
@@ -216,7 +230,7 @@
 
         overlay.querySelector('.gh-lb-prev').style.display = albumImages.length <= 1 ? 'none' : 'flex';
         overlay.querySelector('.gh-lb-next').style.display = albumImages.length <= 1 ? 'none' : 'flex';
-        
+
         updateThumbnails();
         preloadAdjacentImages();
     }
@@ -243,10 +257,10 @@
             await decoder.tracks.ready;
             const frameCount = decoder.tracks.selectedTrack.frameCount;
             if (frameCount === 0) throw new Error();
-            
+
             const testResult = await decoder.decode({ frameIndex: 0 });
             const testCtx = lbCanvas.getContext('2d');
-            testCtx.drawImage(testResult.image, 0, 0); 
+            testCtx.drawImage(testResult.image, 0, 0);
             testCtx.clearRect(0, 0, lbCanvas.width, lbCanvas.height);
 
             if (currentId !== gifDecoderId) return;
@@ -263,7 +277,7 @@
             gifPlaying = true; gifPlayBtn.innerHTML = icoPause; playGifLoop();
         } catch (e) {
             overlay.classList.remove('gif-active-mode');
-            lbImg.style.display = 'block'; lbCanvas.style.display = 'none'; gifBar.style.display = 'none'; 
+            lbImg.style.display = 'block'; lbCanvas.style.display = 'none'; gifBar.style.display = 'none';
             lbImg.src = url;
         }
     }
@@ -392,7 +406,7 @@
     }
 
     function openLightbox() { overlay.classList.add('active'); document.body.style.overflow = 'hidden'; }
-    
+
     function closeLightbox() {
         if (helpModal.classList.contains('active')) { helpModal.classList.remove('active'); return; }
         if (overlay.classList.contains('ui-hidden')) { toggleUIVisibility(); return; }
@@ -406,7 +420,7 @@
     document.addEventListener('click', function(event) {
         const repoUrlRegex = /^https:\/\/github\.com\/[^\/]+\/[^\/]+\/?(?:\?|#|$)/;
         if (!repoUrlRegex.test(window.location.href)) {
-            return; 
+            return;
         }
 
         const targetImg = event.target.closest('.markdown-body img');
@@ -425,7 +439,7 @@
     document.getElementById('gh-lb-toggle-ui-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleUIVisibility(); });
     document.getElementById('gh-lb-fs-btn').addEventListener('click', toggleFullscreen);
     document.getElementById('gh-lb-help-btn').addEventListener('click', (e) => { e.stopPropagation(); helpModal.classList.toggle('active'); });
-    
+
     // Strict boundary validation to prevent cross-bubbling overlay closure leaks
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay || e.target.classList.contains('gh-lb-main-view') || e.target.classList.contains('gh-lb-img-container')) {
