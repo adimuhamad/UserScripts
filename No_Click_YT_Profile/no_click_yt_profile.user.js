@@ -1,17 +1,12 @@
 // ==UserScript==
-// @name         No Click Profile & ClearURLs
-// @namespace    No Click Profile & ClearURLs
-// @version      1.5
-// @description  pencegah klik profil di kolom komentar dan pembersih parameter URL
+// @name         No Click YT Profile
+// @namespace    NoClickProfileClearURLs
+// @version      1.7
+// @description  Prevents accidental profile clicks in YouTube comments and seamlessly cleans tracking parameters from URLs.
 // @author       MochAdiMR
 // @match        https://www.youtube.com/watch*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
 // @license      MIT
-// @compatible   chrome
-// @compatible   firefox
-// @compatible   edge
-// @compatible   opera
-// @compatible   safari
 // @supportURL   https://buymeacoffee.com/mochadimr
 // @homepageURL  https://github.com/adimuhamad/
 // @run-at       document-start
@@ -21,108 +16,101 @@
     "use strict";
 
     // --- 1. CONFIGURATION ---
+    // Centralized config for easy maintenance
     const CONFIG = {
-        // Parameter URL yang akan dihapus
-        URL_PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
-
-        // Selector untuk mendeteksi area komentar (bisa ditambah jika YouTube update struktur)
-        COMMENT_SECTION_SELECTORS: ["#comments", "ytd-comments", "ytd-comment-thread-renderer"],
-
-        // Pesan konfirmasi
+        // Target parameters to strip from the URL
+        PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
+        
+        // Target CSS selectors to identify the comment section
+        COMMENT_SELECTORS: ["#comments", "ytd-comments", "ytd-comment-thread-renderer"],
+        
+        // Alert messages for user interaction
         MESSAGES: {
-            CONFIRM_NAV: "Anda mengklik profil pengguna di komentar.\n\nApakah Anda yakin ingin pindah halaman?"
+            CONFIRM_NAV: "You clicked a user profile in the comments.\n\nAre you sure you want to navigate away?"
         }
     };
 
     // --- 2. MODULE: URL CLEANER ---
+    // Handles the detection and removal of unwanted URL parameters
     const UrlCleaner = {
-        /**
-         * Membersihkan parameter URL yang tidak diinginkan
-         */
         clean: () => {
             try {
+                // Parse current URL
                 const currentUrl = new URL(window.location.href);
                 let isDirty = false;
 
-                CONFIG.URL_PARAMS_TO_REMOVE.forEach((param) => {
+                // Check and remove specified parameters
+                CONFIG.PARAMS_TO_REMOVE.forEach((param) => {
                     if (currentUrl.searchParams.has(param)) {
                         currentUrl.searchParams.delete(param);
-                        isDirty = true;
+                        isDirty = true; // Flag if URL needs changing
                     }
                 });
 
+                // Apply changes if unwanted parameters were found
                 if (isDirty) {
-                    // Gunakan replace() agar user tidak bisa menekan tombol Back ke URL kotor
+                    // Reloads the page with the clean URL and prevents back-button loops
                     window.location.replace(currentUrl.toString());
-                    console.log("[Cleaner] URL parameters cleaned.");
+                    console.log("[Cleaner] URL parameters cleaned and page reloaded.");
                 }
             } catch (e) {
                 console.error("[Cleaner] Error processing URL:", e);
             }
         },
-
+        
         init: () => {
-            // Jalankan saat script dimuat
+            // Run initially on script load
             UrlCleaner.clean();
-
-            // Jalankan setiap kali YouTube selesai navigasi (SPA navigation)
+            
+            // Listen for YouTube's specific SPA (Single Page Application) navigation events
             window.addEventListener("yt-navigate-finish", UrlCleaner.clean);
         }
     };
 
     // --- 3. MODULE: PROFILE GUARD ---
+    // Intercepts and guards profile clicks within the comment section
     const ProfileGuard = {
-        /**
-         * Mengecek apakah elemen berada di dalam area komentar
-         */
-        isInsideComments: (element) => {
-            return CONFIG.COMMENT_SECTION_SELECTORS.some(selector => element.closest(selector));
-        },
-
-        /**
-         * Mengecek apakah link mengarah ke profil user/channel
-         */
+        // Checks if the clicked element lives inside a comment container
+        isInsideComments: (el) => CONFIG.COMMENT_SELECTORS.some(sel => el.closest(sel)),
+        
+        // Checks if the hyperlink destination is a user or channel profile
         isProfileLink: (anchor) => {
             const path = anchor.pathname;
             return path.startsWith("/@") || path.startsWith("/channel/") || path.startsWith("/user/");
         },
-
-        /**
-         * Handler utama untuk event klik
-         */
+        
+        // Main click event interceptor
         handleClick: (event) => {
-            // 1. Bypass jika tombol Shift ditekan
+            // Allow bypass if the user holds the Shift key
             if (event.shiftKey) return;
 
-            // 2. Cari elemen <a> terdekat dari target klik
+            // Find the closest anchor <a> tag from the clicked target
             const linkElement = event.target.closest("a");
             if (!linkElement || !linkElement.href) return;
 
-            // 3. Validasi: Apakah ini link profil DAN ada di dalam komentar?
+            // Validate both conditions: Is it a profile link AND in the comments?
             if (ProfileGuard.isProfileLink(linkElement) && ProfileGuard.isInsideComments(linkElement)) {
-
-                // Hentikan eksekusi event bawaan YouTube segera
+                
+                // Immediately halt YouTube's default click behavior
                 event.preventDefault();
                 event.stopPropagation();
                 event.stopImmediatePropagation();
 
-                // Tampilkan konfirmasi
-                const userConfirmed = confirm(CONFIG.MESSAGES.CONFIRM_NAV);
-
-                if (userConfirmed) {
+                // Prompt user for confirmation before navigating
+                if (confirm(CONFIG.MESSAGES.CONFIRM_NAV)) {
                     window.location.href = linkElement.href;
                 }
             }
         },
-
+        
         init: () => {
-            // Menggunakan capture: true agar event ditangkap SEBELUM sampai ke script YouTube
+            // Use capture phase (true) to intercept the click BEFORE YouTube's own scripts do
             document.addEventListener("click", ProfileGuard.handleClick, true);
         }
     };
 
     // --- 4. INITIALIZATION ---
-    // Menjalankan kedua modul
+    // Boot up both modules
     UrlCleaner.init();
     ProfileGuard.init();
 
