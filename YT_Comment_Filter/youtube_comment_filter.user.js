@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         YouTube Comment Filter
-// @namespace    YT Comment Filter (Improved)
+// @name         YouTube Comments Filters
+// @namespace    YTCommentFilterImproved
 // @version      7.1
 // @description  Automatically hide YouTube comments based on username, specific keywords, and spam text patterns. Features Dual-Mode Observer, Live Sync, and Data Export/Import.
 // @author       MochAdiMR (Refactored)
