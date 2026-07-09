@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         No Click YT Profile
 // @namespace    NoClickProfileClearURLs
-// @version      1.7
-// @description  Prevents accidental profile clicks in YouTube comments and seamlessly cleans tracking parameters from URLs.
+// @version      2.0
+// @description  Prevents accidental profile clicks with a custom modal UI and cleans tracking parameters from URLs.
 // @author       MochAdiMR
 // @match        https://www.youtube.com/watch*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
@@ -15,102 +15,182 @@
 (function () {
     "use strict";
 
-    // --- 1. CONFIGURATION ---
-    // Centralized config for easy maintenance
+    // Configuration
     const CONFIG = {
-        // Target parameters to strip from the URL
         PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
         
-        // Target CSS selectors to identify the comment section
-        COMMENT_SELECTORS: ["#comments", "ytd-comments", "ytd-comment-thread-renderer"],
+        // Imported comprehensive selectors
+        SEL: {
+            CONTAINER: "ytd-comment-view-model",
+            TEXT: "#content-text",
+            AUTHOR: "#author-text span",
+            HEADER: "ytd-comments-header-renderer #additional-section",
+            THREAD: "ytd-comment-thread-renderer",
+            REPLIES: "#replies",
+            TARGET: "ytd-comments"
+        },
         
-        // Alert messages for user interaction
         MESSAGES: {
-            CONFIRM_NAV: "You clicked a user profile in the comments.\n\nAre you sure you want to navigate away?"
+            CONFIRM_NAV: "You clicked a user profile in the comments.\nAre you sure you want to navigate away?"
         }
     };
 
-    // --- 2. MODULE: URL CLEANER ---
-    // Handles the detection and removal of unwanted URL parameters
+    // Custom Modal UI
+    const ModalUI = {
+        element: null,
+        targetUrl: "",
+        
+        init: () => {
+            // Prevent duplicate modals
+            if (document.getElementById("no-click-yt-modal")) return;
+
+            // Overlay wrapper
+            const overlay = document.createElement("div");
+            overlay.id = "no-click-yt-modal";
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(0, 0, 0, 0.7); display: none; align-items: center;
+                justify-content: center; z-index: 999999; backdrop-filter: blur(2px);
+                font-family: 'Roboto', Arial, sans-serif;
+            `;
+
+            // Modal dialog box
+            const box = document.createElement("div");
+            box.style.cssText = `
+                background: #212121; color: #fff; padding: 24px; border-radius: 12px;
+                max-width: 350px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+                border: 1px solid #3d3d3d;
+            `;
+
+            // Message text
+            const message = document.createElement("p");
+            message.innerText = CONFIG.MESSAGES.CONFIRM_NAV;
+            message.style.cssText = "margin: 0 0 24px 0; font-size: 15px; line-height: 1.5; color: #f1f1f1;";
+
+            // Buttons container
+            const btnContainer = document.createElement("div");
+            btnContainer.style.cssText = "display: flex; gap: 12px; justify-content: center;";
+
+            // Cancel button
+            const btnCancel = document.createElement("button");
+            btnCancel.innerText = "Cancel";
+            btnCancel.style.cssText = `
+                background: transparent; color: #f1f1f1; border: none; padding: 10px 20px;
+                border-radius: 18px; cursor: pointer; font-weight: 600; font-size: 14px;
+            `;
+            btnCancel.onmouseover = () => btnCancel.style.background = "#3d3d3d";
+            btnCancel.onmouseout = () => btnCancel.style.background = "transparent";
+            btnCancel.onclick = () => ModalUI.hide();
+
+            // Leave/Confirm button
+            const btnConfirm = document.createElement("button");
+            btnConfirm.innerText = "Leave";
+            btnConfirm.style.cssText = `
+                background: #3ea6ff; color: #0f0f0f; border: none; padding: 10px 20px;
+                border-radius: 18px; cursor: pointer; font-weight: 600; font-size: 14px;
+            `;
+            btnConfirm.onmouseover = () => btnConfirm.style.background = "#65b8ff";
+            btnConfirm.onmouseout = () => btnConfirm.style.background = "#3ea6ff";
+            btnConfirm.onclick = () => { window.location.href = ModalUI.targetUrl; };
+
+            // Assemble modal
+            btnContainer.append(btnCancel, btnConfirm);
+            box.append(message, btnContainer);
+            overlay.append(box);
+
+            // Inject safely into the DOM once body is available
+            const appendInterval = setInterval(() => {
+                if (document.body) {
+                    document.body.appendChild(overlay);
+                    ModalUI.element = overlay;
+                    clearInterval(appendInterval);
+                }
+            }, 100);
+        },
+        
+        show: (url) => {
+            ModalUI.targetUrl = url;
+            if (ModalUI.element) ModalUI.element.style.display = "flex";
+        },
+        
+        hide: () => {
+            if (ModalUI.element) ModalUI.element.style.display = "none";
+        }
+    };
+
+    // URL Cleaner
     const UrlCleaner = {
         clean: () => {
             try {
-                // Parse current URL
                 const currentUrl = new URL(window.location.href);
                 let isDirty = false;
 
-                // Check and remove specified parameters
                 CONFIG.PARAMS_TO_REMOVE.forEach((param) => {
                     if (currentUrl.searchParams.has(param)) {
                         currentUrl.searchParams.delete(param);
-                        isDirty = true; // Flag if URL needs changing
+                        isDirty = true;
                     }
                 });
 
-                // Apply changes if unwanted parameters were found
                 if (isDirty) {
-                    // Reloads the page with the clean URL and prevents back-button loops
+                    // Force a reload with the clean URL to prevent back-button loops
                     window.location.replace(currentUrl.toString());
-                    console.log("[Cleaner] URL parameters cleaned and page reloaded.");
                 }
             } catch (e) {
-                console.error("[Cleaner] Error processing URL:", e);
+                console.error("URL Cleaner Error:", e);
             }
         },
         
         init: () => {
-            // Run initially on script load
             UrlCleaner.clean();
-            
-            // Listen for YouTube's specific SPA (Single Page Application) navigation events
             window.addEventListener("yt-navigate-finish", UrlCleaner.clean);
         }
     };
 
-    // --- 3. MODULE: PROFILE GUARD ---
-    // Intercepts and guards profile clicks within the comment section
+    // Profile Guard
     const ProfileGuard = {
-        // Checks if the clicked element lives inside a comment container
-        isInsideComments: (el) => CONFIG.COMMENT_SELECTORS.some(sel => el.closest(sel)),
-        
-        // Checks if the hyperlink destination is a user or channel profile
         isProfileLink: (anchor) => {
             const path = anchor.pathname;
             return path.startsWith("/@") || path.startsWith("/channel/") || path.startsWith("/user/");
         },
         
-        // Main click event interceptor
         handleClick: (event) => {
-            // Allow bypass if the user holds the Shift key
             if (event.shiftKey) return;
 
-            // Find the closest anchor <a> tag from the clicked target
             const linkElement = event.target.closest("a");
             if (!linkElement || !linkElement.href) return;
 
-            // Validate both conditions: Is it a profile link AND in the comments?
-            if (ProfileGuard.isProfileLink(linkElement) && ProfileGuard.isInsideComments(linkElement)) {
-                
-                // Immediately halt YouTube's default click behavior
+            if (ProfileGuard.isProfileLink(linkElement)) {
+                // Intercept click and show custom UI
                 event.preventDefault();
                 event.stopPropagation();
                 event.stopImmediatePropagation();
 
-                // Prompt user for confirmation before navigating
-                if (confirm(CONFIG.MESSAGES.CONFIRM_NAV)) {
-                    window.location.href = linkElement.href;
-                }
+                ModalUI.show(linkElement.href);
             }
         },
         
         init: () => {
-            // Use capture phase (true) to intercept the click BEFORE YouTube's own scripts do
-            document.addEventListener("click", ProfileGuard.handleClick, true);
+            // Observe the DOM until the main comments section appears
+            const observer = new MutationObserver((mutations, obs) => {
+                const commentSection = document.querySelector(CONFIG.SEL.TARGET);
+                
+                if (commentSection) {
+                    // Found the comment section! Attach scoped listener and stop observing
+                    commentSection.addEventListener("click", ProfileGuard.handleClick, true);
+                    obs.disconnect();
+                }
+            });
+
+            // Start observing safely
+            if (document.documentElement) {
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+            }
         }
     };
 
-    // --- 4. INITIALIZATION ---
-    // Boot up both modules
+    // Initialize all modules
+    ModalUI.init();
     UrlCleaner.init();
     ProfileGuard.init();
 
