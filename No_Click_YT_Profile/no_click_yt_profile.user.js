@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         No Click YT Profile
 // @namespace    NoClickProfileClearURLs
-// @version      2.0
-// @description  Prevents accidental profile clicks with a custom modal UI and cleans tracking parameters from URLs.
+// @version      2.2
+// @description  Prevents accidental profile clicks in YouTube comments and seamlessly handles navigation and URL tracking parameters.
 // @author       MochAdiMR
 // @match        https://www.youtube.com/watch*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=youtube.com
@@ -15,11 +15,12 @@
 (function () {
     "use strict";
 
-    // Configuration
+    // --- 1. CONFIGURATION ---
     const CONFIG = {
+        // Toggle URL Cleaner feature (true = active, false = disabled)
+        ENABLE_URL_CLEANER: true,
         PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
         
-        // Imported comprehensive selectors
         SEL: {
             CONTAINER: "ytd-comment-view-model",
             TEXT: "#content-text",
@@ -31,74 +32,32 @@
         },
         
         MESSAGES: {
-            CONFIRM_NAV: "You clicked a user profile in the comments.\nAre you sure you want to navigate away?"
+            CONFIRM_NAV: "You clicked a user profile,<br>Are you want to navigate away?"
         }
     };
 
-    // Custom Modal UI
+    // --- 2. MODULE: CUSTOM MODAL UI ---
+    // Uses YouTube's native CSS variables to automatically adapt to Light/Dark mode
     const ModalUI = {
         element: null,
         targetUrl: "",
         
         init: () => {
-            // Prevent duplicate modals
             if (document.getElementById("no-click-yt-modal")) return;
 
-            // Overlay wrapper
+            const style = document.createElement("style");
+            style.textContent = `#no-click-yt-modal{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgb(0 0 0 / .6);display:none;align-items:center;justify-content:center;z-index:999999;backdrop-filter:blur(2px);font-family:"Roboto",Arial,sans-serif}.no-click-box{background:var(--yt-spec-raised-background,#212121);color:var(--yt-spec-text-primary,#fff);padding:24px;border-radius:12px;max-width:350px;text-align:center;box-shadow:0 4px 24px rgb(0 0 0 / .25);border:1px solid var(--yt-spec-10-percent-layer,#3d3d3d)}.no-click-msg{margin:0 0 24px 0;font-size:15px;line-height:1.5}.no-click-btn-container{display:flex;gap:12px;justify-content:center}.no-click-btn{border:none;padding:10px 20px;border-radius:18px;cursor:pointer;font-weight:600;font-size:14px;transition:background 0.2s,opacity 0.2s}.no-click-btn-cancel{background:#fff0;color:var(--yt-spec-text-primary,#fff)}.no-click-btn-cancel:hover{background:var(--yt-spec-10-percent-layer,rgb(255 255 255 / .1))}.no-click-btn-confirm{background:var(--yt-spec-call-to-action,#3ea6ff);color:var(--yt-spec-text-primary-inverse,#0f0f0f)}.no-click-btn-confirm:hover{opacity:.85}`;
+            document.head.appendChild(style);
+
             const overlay = document.createElement("div");
             overlay.id = "no-click-yt-modal";
-            overlay.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                background: rgba(0, 0, 0, 0.7); display: none; align-items: center;
-                justify-content: center; z-index: 999999; backdrop-filter: blur(2px);
-                font-family: 'Roboto', Arial, sans-serif;
-            `;
+            overlay.innerHTML = `<div class="no-click-box"><p class="no-click-msg">${CONFIG.MESSAGES.CONFIRM_NAV}</p><div class="no-click-btn-container"><button id="no-click-btn-cancel" class="no-click-btn no-click-btn-cancel">Cancel</button><button id="no-click-btn-confirm" class="no-click-btn no-click-btn-confirm">Leave</button></div></div>`;
 
-            // Modal dialog box
-            const box = document.createElement("div");
-            box.style.cssText = `
-                background: #212121; color: #fff; padding: 24px; border-radius: 12px;
-                max-width: 350px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-                border: 1px solid #3d3d3d;
-            `;
+            overlay.querySelector("#no-click-btn-cancel").addEventListener("click", ModalUI.hide);
+            overlay.querySelector("#no-click-btn-confirm").addEventListener("click", () => {
+                window.location.href = ModalUI.targetUrl;
+            });
 
-            // Message text
-            const message = document.createElement("p");
-            message.innerText = CONFIG.MESSAGES.CONFIRM_NAV;
-            message.style.cssText = "margin: 0 0 24px 0; font-size: 15px; line-height: 1.5; color: #f1f1f1;";
-
-            // Buttons container
-            const btnContainer = document.createElement("div");
-            btnContainer.style.cssText = "display: flex; gap: 12px; justify-content: center;";
-
-            // Cancel button
-            const btnCancel = document.createElement("button");
-            btnCancel.innerText = "Cancel";
-            btnCancel.style.cssText = `
-                background: transparent; color: #f1f1f1; border: none; padding: 10px 20px;
-                border-radius: 18px; cursor: pointer; font-weight: 600; font-size: 14px;
-            `;
-            btnCancel.onmouseover = () => btnCancel.style.background = "#3d3d3d";
-            btnCancel.onmouseout = () => btnCancel.style.background = "transparent";
-            btnCancel.onclick = () => ModalUI.hide();
-
-            // Leave/Confirm button
-            const btnConfirm = document.createElement("button");
-            btnConfirm.innerText = "Leave";
-            btnConfirm.style.cssText = `
-                background: #3ea6ff; color: #0f0f0f; border: none; padding: 10px 20px;
-                border-radius: 18px; cursor: pointer; font-weight: 600; font-size: 14px;
-            `;
-            btnConfirm.onmouseover = () => btnConfirm.style.background = "#65b8ff";
-            btnConfirm.onmouseout = () => btnConfirm.style.background = "#3ea6ff";
-            btnConfirm.onclick = () => { window.location.href = ModalUI.targetUrl; };
-
-            // Assemble modal
-            btnContainer.append(btnCancel, btnConfirm);
-            box.append(message, btnContainer);
-            overlay.append(box);
-
-            // Inject safely into the DOM once body is available
             const appendInterval = setInterval(() => {
                 if (document.body) {
                     document.body.appendChild(overlay);
@@ -118,7 +77,45 @@
         }
     };
 
-    // URL Cleaner
+    // --- 3. MODULE: PROFILE GUARD ---
+    const ProfileGuard = {
+        isProfileLink: (anchor) => {
+            const path = anchor.pathname;
+            return path.startsWith("/@") || path.startsWith("/channel/") || path.startsWith("/user/");
+        },
+        
+        handleClick: (event) => {
+            if (event.shiftKey) return;
+
+            const linkElement = event.target.closest("a");
+            if (!linkElement || !linkElement.href) return;
+
+            if (ProfileGuard.isProfileLink(linkElement)) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                ModalUI.show(linkElement.href);
+            }
+        },
+        
+        init: () => {
+            const observer = new MutationObserver((mutations, obs) => {
+                const commentSection = document.querySelector(CONFIG.SEL.TARGET);
+                
+                if (commentSection) {
+                    commentSection.addEventListener("click", ProfileGuard.handleClick, true);
+                    obs.disconnect();
+                }
+            });
+
+            if (document.documentElement) {
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+            }
+        }
+    };
+
+    // --- 4. MODULE: URL CLEANER ---
     const UrlCleaner = {
         clean: () => {
             try {
@@ -133,7 +130,6 @@
                 });
 
                 if (isDirty) {
-                    // Force a reload with the clean URL to prevent back-button loops
                     window.location.replace(currentUrl.toString());
                 }
             } catch (e) {
@@ -142,56 +138,19 @@
         },
         
         init: () => {
+            // Respect the toggle configuration
+            if (!CONFIG.ENABLE_URL_CLEANER) {
+                return;
+            }
+
             UrlCleaner.clean();
             window.addEventListener("yt-navigate-finish", UrlCleaner.clean);
         }
     };
 
-    // Profile Guard
-    const ProfileGuard = {
-        isProfileLink: (anchor) => {
-            const path = anchor.pathname;
-            return path.startsWith("/@") || path.startsWith("/channel/") || path.startsWith("/user/");
-        },
-        
-        handleClick: (event) => {
-            if (event.shiftKey) return;
-
-            const linkElement = event.target.closest("a");
-            if (!linkElement || !linkElement.href) return;
-
-            if (ProfileGuard.isProfileLink(linkElement)) {
-                // Intercept click and show custom UI
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-
-                ModalUI.show(linkElement.href);
-            }
-        },
-        
-        init: () => {
-            // Observe the DOM until the main comments section appears
-            const observer = new MutationObserver((mutations, obs) => {
-                const commentSection = document.querySelector(CONFIG.SEL.TARGET);
-                
-                if (commentSection) {
-                    // Found the comment section! Attach scoped listener and stop observing
-                    commentSection.addEventListener("click", ProfileGuard.handleClick, true);
-                    obs.disconnect();
-                }
-            });
-
-            // Start observing safely
-            if (document.documentElement) {
-                observer.observe(document.documentElement, { childList: true, subtree: true });
-            }
-        }
-    };
-
-    // Initialize all modules
+    // --- 5. INITIALIZATION ---
     ModalUI.init();
-    UrlCleaner.init();
     ProfileGuard.init();
+    UrlCleaner.init();
 
 })();
