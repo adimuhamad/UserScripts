@@ -1,1 +1,1 @@
-This script provides a minimalist lightbox gallery for Google Play Store images, allowing for multi-image panorama viewing, dynamic resolution selection, and user-customizable settings.
+A lightweight, feature-rich Tampermonkey userscript that upgrades the default screenshot viewer on the Google Play Store web version. Designed for a seamless and customizable viewing experience, this script replaces the standard image popup with a modern, full-screen lightbox gallery.
