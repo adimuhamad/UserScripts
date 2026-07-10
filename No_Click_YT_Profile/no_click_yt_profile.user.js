@@ -15,7 +15,7 @@
 (function () {
     "use strict";
 
-    // --- 1. CONFIGURATION ---
+    // CONFIGURATION
     const CONFIG = {
         // Toggle URL Cleaner feature (true = active, false = disabled)
         ENABLE_URL_CLEANER: true,
@@ -38,7 +38,7 @@
         }
     };
 
-    // --- 2. MODULE: CUSTOM MODAL UI ---
+    // CUSTOM MODAL UI
     const ModalUI = {
         element: null,
         targetUrl: "",
@@ -74,7 +74,7 @@
         }
     };
 
-    // --- 3. MODULE: PROFILE GUARD ---
+    // PROFILE GUARD
     const ProfileGuard = {
         isProfileLink: (anchor) => {
             const path = anchor.pathname;
@@ -112,7 +112,7 @@
         }
     };
 
-    // --- 4. MODULE: URL CLEANER ---
+    // URL CLEANER
     const UrlCleaner = {
         clean: () => {
             try {
@@ -128,12 +128,14 @@
 
                 if (isDirty) {
                     window.location.replace(currentUrl.toString());
-                    return true; // Tells the script a navigation is happening
+                    // Tells the script a navigation is happening
+                    return true;
                 }
             } catch (e) {
                 // Errors suppressed
             }
-            return false; // Tells the script URL is clean
+            // Tells the script URL is clean
+            return false;
         },
         
         init: () => {
@@ -146,16 +148,15 @@
         }
     };
 
-    // --- 5. INITIALIZATION (SMART EXECUTION ROUTER) ---
-    // Execute UrlCleaner first and capture its status
+    // INITIALIZATION
     const isPageRestarting = UrlCleaner.init();
 
     // Only build UI and Guard if the page is NOT restarting
     if (!isPageRestarting) {
         
         const initDOMModules = () => {
-            ModalUI.init();
             ProfileGuard.init();
+            ModalUI.init();
         };
 
         // Ensure the webpage body is ready before running DOM modules
