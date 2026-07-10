@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         No Click YT Profile
 // @namespace    NoClickProfileClearURLs
-// @version      2.3
+// @version      2.4
 // @description  Prevents accidental profile clicks in YouTube comments and seamlessly handles navigation and URL tracking parameters.
 // @author       MochAdiMR
 // @match        https://www.youtube.com/watch*
@@ -20,7 +20,7 @@
         // Toggle URL Cleaner feature (true = active, false = disabled)
         ENABLE_URL_CLEANER: true,
         
-        // Target parameters to strip from the URL (Reverted to v1.5 structure)
+        // Target parameters to strip from the URL
         URL_PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
         
         SEL: {
@@ -48,6 +48,7 @@
 
             const style = document.createElement("style");
             style.textContent = `#no-click-yt-modal{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgb(0 0 0 / .6);display:none;align-items:center;justify-content:center;z-index:999999;backdrop-filter:blur(2px);font-family:"Roboto",Arial,sans-serif}.no-click-box{background:var(--yt-spec-raised-background,#212121);color:var(--yt-spec-text-primary,#fff);padding:24px;border-radius:12px;max-width:350px;text-align:center;box-shadow:0 4px 24px rgb(0 0 0 / .25);border:1px solid var(--yt-spec-10-percent-layer,#3d3d3d)}.no-click-msg{margin:0 0 24px 0;font-size:15px;line-height:1.5}.no-click-btn-container{display:flex;gap:12px;justify-content:center}.no-click-btn{border:none;padding:10px 20px;border-radius:18px;cursor:pointer;font-weight:600;font-size:14px;transition:background 0.2s,opacity 0.2s}.no-click-btn-cancel{background:#fff0;color:var(--yt-spec-text-primary,#fff)}.no-click-btn-cancel:hover{background:var(--yt-spec-10-percent-layer,rgb(255 255 255 / .1))}.no-click-btn-confirm{background:var(--yt-spec-call-to-action,#3ea6ff);color:var(--yt-spec-text-primary-inverse,#0f0f0f)}.no-click-btn-confirm:hover{opacity:.85}`;
+            // Safe to append directly because this will run after DOMContentLoaded
             document.head.appendChild(style);
 
             const overlay = document.createElement("div");
@@ -59,13 +60,8 @@
                 window.location.href = ModalUI.targetUrl;
             });
 
-            const appendInterval = setInterval(() => {
-                if (document.body) {
-                    document.body.appendChild(overlay);
-                    ModalUI.element = overlay;
-                    clearInterval(appendInterval);
-                }
-            }, 100);
+            document.body.appendChild(overlay);
+            ModalUI.element = overlay;
         },
         
         show: (url) => {
@@ -132,24 +128,42 @@
 
                 if (isDirty) {
                     window.location.replace(currentUrl.toString());
+                    return true; // Tells the script a navigation is happening
                 }
             } catch (e) {
-                // Errors suppressed to keep console clean
+                // Errors suppressed
             }
+            return false; // Tells the script URL is clean
         },
         
         init: () => {
-            if (!CONFIG.ENABLE_URL_CLEANER) return;
+            if (!CONFIG.ENABLE_URL_CLEANER) return false;
 
-            UrlCleaner.clean();
+            const isNavigating = UrlCleaner.clean();
             window.addEventListener("yt-navigate-finish", UrlCleaner.clean);
+            
+            return isNavigating;
         }
     };
 
-    // --- 5. INITIALIZATION ---
-    // Execution order restored: Cleaner is prioritized first like in v1.5
-    UrlCleaner.init();
-    ModalUI.init();
-    ProfileGuard.init();
+    // --- 5. INITIALIZATION (SMART EXECUTION ROUTER) ---
+    // Execute UrlCleaner first and capture its status
+    const isPageRestarting = UrlCleaner.init();
+
+    // Only build UI and Guard if the page is NOT restarting
+    if (!isPageRestarting) {
+        
+        const initDOMModules = () => {
+            ModalUI.init();
+            ProfileGuard.init();
+        };
+
+        // Ensure the webpage body is ready before running DOM modules
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initDOMModules);
+        } else {
+            initDOMModules();
+        }
+    }
 
 })();
