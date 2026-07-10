@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         No Click YT Profile
 // @namespace    NoClickProfileClearURLs
-// @version      2.2
+// @version      2.3
 // @description  Prevents accidental profile clicks in YouTube comments and seamlessly handles navigation and URL tracking parameters.
 // @author       MochAdiMR
 // @match        https://www.youtube.com/watch*
@@ -19,7 +19,9 @@
     const CONFIG = {
         // Toggle URL Cleaner feature (true = active, false = disabled)
         ENABLE_URL_CLEANER: true,
-        PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
+        
+        // Target parameters to strip from the URL (Reverted to v1.5 structure)
+        URL_PARAMS_TO_REMOVE: ["list", "index", "pp", "si"],
         
         SEL: {
             CONTAINER: "ytd-comment-view-model",
@@ -37,7 +39,6 @@
     };
 
     // --- 2. MODULE: CUSTOM MODAL UI ---
-    // Uses YouTube's native CSS variables to automatically adapt to Light/Dark mode
     const ModalUI = {
         element: null,
         targetUrl: "",
@@ -105,7 +106,7 @@
                 
                 if (commentSection) {
                     commentSection.addEventListener("click", ProfileGuard.handleClick, true);
-                    obs.disconnect();
+                    obs.disconnect(); 
                 }
             });
 
@@ -122,7 +123,7 @@
                 const currentUrl = new URL(window.location.href);
                 let isDirty = false;
 
-                CONFIG.PARAMS_TO_REMOVE.forEach((param) => {
+                CONFIG.URL_PARAMS_TO_REMOVE.forEach((param) => {
                     if (currentUrl.searchParams.has(param)) {
                         currentUrl.searchParams.delete(param);
                         isDirty = true;
@@ -133,15 +134,12 @@
                     window.location.replace(currentUrl.toString());
                 }
             } catch (e) {
-                console.error("URL Cleaner Error:", e);
+                // Errors suppressed to keep console clean
             }
         },
         
         init: () => {
-            // Respect the toggle configuration
-            if (!CONFIG.ENABLE_URL_CLEANER) {
-                return;
-            }
+            if (!CONFIG.ENABLE_URL_CLEANER) return;
 
             UrlCleaner.clean();
             window.addEventListener("yt-navigate-finish", UrlCleaner.clean);
@@ -149,8 +147,9 @@
     };
 
     // --- 5. INITIALIZATION ---
+    // Execution order restored: Cleaner is prioritized first like in v1.5
+    UrlCleaner.init();
     ModalUI.init();
     ProfileGuard.init();
-    UrlCleaner.init();
 
 })();
