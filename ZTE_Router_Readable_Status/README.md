@@ -1,0 +1,1 @@
+A comprehensive Tampermonkey script designed to completely overhaul the default dashboard interface of ZTE routers (tested on the F6600P model). This script transforms rigid network status tables into a highly readable, organized, and interactive dashboard with various automation features.
